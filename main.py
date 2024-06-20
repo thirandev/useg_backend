@@ -3,7 +3,8 @@ import os
 
 os.environ["SM_FRAMEWORK"] = "tf.keras"
 import segmentation_models as sm
-
+import cv2
+import numpy as np
 from flask import Flask, jsonify, request, send_file
 from app.config import UPLOAD_FOLDER, MODEL_PATH, PATCHED_FOLDER, PREDICTED_PATCH_FOLDER, PREDICTED_FOLDER
 from app.image_upload.upload_handler import ImageUploadHandler
@@ -82,6 +83,51 @@ def predict_mask():
     else:
         return jsonify(error="Invalid image type. Supported types: 'resized_image' or 'patch_image'"), 400
 
+
+# GET endpoint to combine the patch masks into a single image using OpenCV seamless cloning
+@app.route('/combine-patches', methods=['GET'])
+def combine_patches():
+    filename = request.args.get('filename')
+    if not filename:
+        return jsonify(error="Filename parameter is required"), 400
+
+    try:
+        patch_0_path = os.path.join(PREDICTED_PATCH_FOLDER, f"predicted_{filename}_patch_0.png")
+        patch_1_path = os.path.join(PREDICTED_PATCH_FOLDER, f"predicted_{filename}_patch_1.png")
+        patch_2_path = os.path.join(PREDICTED_PATCH_FOLDER, f"predicted_{filename}_patch_2.png")
+        patch_3_path = os.path.join(PREDICTED_PATCH_FOLDER, f"predicted_{filename}_patch_3.png")
+
+        patch_0 = cv2.imread(patch_0_path)
+        patch_1 = cv2.imread(patch_1_path)
+        patch_2 = cv2.imread(patch_2_path)
+        patch_3 = cv2.imread(patch_3_path)
+
+        combined_image = np.zeros((256, 256, 3), dtype=np.uint8)
+
+        combined_image[0:128, 0:128, :] = patch_0
+        combined_image[0:128, 128:256, :] = patch_1
+        combined_image[128:256, 0:128, :] = patch_2
+        combined_image[128:256, 128:256, :] = patch_3
+
+        # Create masks for seamless cloning
+        mask = np.ones((128, 128, 3), dtype=np.uint8) * 255
+
+        center_0 = (64, 64)
+        center_1 = (192, 64)
+        center_2 = (64, 192)
+        center_3 = (192, 192)
+
+        combined_image = cv2.seamlessClone(patch_0, combined_image, mask, center_0, cv2.NORMAL_CLONE)
+        combined_image = cv2.seamlessClone(patch_1, combined_image, mask, center_1, cv2.NORMAL_CLONE)
+        combined_image = cv2.seamlessClone(patch_2, combined_image, mask, center_2, cv2.NORMAL_CLONE)
+        combined_image = cv2.seamlessClone(patch_3, combined_image, mask, center_3, cv2.NORMAL_CLONE)
+
+        combined_image_path = os.path.join(PREDICTED_FOLDER, f"{filename}_combined_seamlessClone.png")
+        cv2.imwrite(combined_image_path, combined_image)
+
+        return jsonify(message="Combined image saved successfully", combined_image_path=combined_image_path), 200
+    except Exception as e:
+        return jsonify(error="Error combining patches: " + str(e)), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
