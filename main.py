@@ -3,13 +3,14 @@ import os
 
 os.environ["SM_FRAMEWORK"] = "tf.keras"
 import segmentation_models as sm
-
+import cv2
 from flask import Flask, jsonify, request, send_file
 from app.config import UPLOAD_FOLDER, MODEL_PATH, PATCHED_FOLDER, PREDICTED_PATCH_FOLDER, PREDICTED_FOLDER
 from app.image_upload.upload_handler import ImageUploadHandler
 from app.image_processing.image_processor import ImageProcessor
 from keras.models import load_model
 from keras.optimizers import Adam
+import numpy as np
 
 app = Flask(__name__)
 
@@ -81,6 +82,42 @@ def predict_mask():
         return jsonify(predicted_mask_urls=predicted_mask_paths), 200
     else:
         return jsonify(error="Invalid image type. Supported types: 'resized_image' or 'patch_image'"), 400
+
+# GET endpoint to combine the patch masks into a single image using OpenCV blending
+@app.route('/combine-patches', methods=['GET'])
+def combine_patches():
+    filename = request.args.get('filename')
+    if not filename:
+        return jsonify(error="Filename parameter is required"), 400
+
+    try:
+        patch_0_path = os.path.join(PREDICTED_PATCH_FOLDER, f"predicted_{filename}_patch_0.png")
+        patch_1_path = os.path.join(PREDICTED_PATCH_FOLDER, f"predicted_{filename}_patch_1.png")
+        patch_2_path = os.path.join(PREDICTED_PATCH_FOLDER, f"predicted_{filename}_patch_2.png")
+        patch_3_path = os.path.join(PREDICTED_PATCH_FOLDER, f"predicted_{filename}_patch_3.png")
+
+        patch_0 = cv2.imread(patch_0_path)
+        patch_1 = cv2.imread(patch_1_path)
+        patch_2 = cv2.imread(patch_2_path)
+        patch_3 = cv2.imread(patch_3_path)
+
+        combined_image = np.zeros((256, 256, 3), dtype=np.uint8)
+
+        combined_image[0:128, 0:128, :] = patch_0
+        combined_image[0:128, 128:256, :] = patch_1
+        combined_image[128:256, 0:128, :] = patch_2
+        combined_image[128:256, 128:256, :] = patch_3
+
+        # Use OpenCV to blend the images smoothly
+        alpha = 0.5
+        blended_image = cv2.addWeighted(combined_image, alpha, combined_image, 1 - alpha, 0)
+
+        combined_image_path = os.path.join(PREDICTED_FOLDER, f"{filename}_combined_opencv.png")
+        cv2.imwrite(combined_image_path, blended_image)
+
+        return jsonify(message="Combined image saved successfully", combined_image_path=combined_image_path), 200
+    except Exception as e:
+        return jsonify(error="Error combining patches: " + str(e)), 500
 
 
 if __name__ == '__main__':
