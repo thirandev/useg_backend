@@ -10,6 +10,7 @@ from app.image_upload.upload_handler import ImageUploadHandler
 from app.image_processing.image_processor import ImageProcessor
 from keras.models import load_model
 from keras.optimizers import Adam
+from PIL import Image
 
 app = Flask(__name__)
 
@@ -81,6 +82,37 @@ def predict_mask():
         return jsonify(predicted_mask_urls=predicted_mask_paths), 200
     else:
         return jsonify(error="Invalid image type. Supported types: 'resized_image' or 'patch_image'"), 400
+
+@app.route('/combine-patches', methods=['GET'])
+def combine_patches():
+    filename = request.args.get('filename')
+    if not filename:
+        return jsonify(error="Filename parameter is required"), 400
+
+    try:
+        patch_0_path = os.path.join(PREDICTED_PATCH_FOLDER, f"predicted_{filename}_patch_0.png")
+        patch_1_path = os.path.join(PREDICTED_PATCH_FOLDER, f"predicted_{filename}_patch_1.png")
+        patch_2_path = os.path.join(PREDICTED_PATCH_FOLDER, f"predicted_{filename}_patch_2.png")
+        patch_3_path = os.path.join(PREDICTED_PATCH_FOLDER, f"predicted_{filename}_patch_3.png")
+
+        patch_0 = Image.open(patch_0_path)
+        patch_1 = Image.open(patch_1_path)
+        patch_2 = Image.open(patch_2_path)
+        patch_3 = Image.open(patch_3_path)
+
+        combined_image = Image.new('RGB', (256, 256))
+
+        combined_image.paste(patch_0, (0, 0))
+        combined_image.paste(patch_1, (128, 0))
+        combined_image.paste(patch_2, (0, 128))
+        combined_image.paste(patch_3, (128, 128))
+
+        combined_image_path = os.path.join(PREDICTED_FOLDER, f"{filename}_combined.png")
+        combined_image.save(combined_image_path)
+
+        return send_file(combined_image_path)
+    except Exception as e:
+        return jsonify(error="Error combining patches: " + str(e)), 500
 
 
 if __name__ == '__main__':
