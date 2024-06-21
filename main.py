@@ -6,13 +6,14 @@ import segmentation_models as sm
 import cv2
 import numpy as np
 from flask import Flask, jsonify, request, send_file
+from flask_cors import CORS
 from app.config import UPLOAD_FOLDER, MODEL_PATH, PATCHED_FOLDER, PREDICTED_PATCH_FOLDER, PREDICTED_FOLDER
 from app.image_upload.upload_handler import ImageUploadHandler
-from app.image_processing.image_processor import ImageProcessor
 from keras.models import load_model
 from keras.optimizers import Adam
 
 app = Flask(__name__)
+CORS(app)  # This will enable CORS for all routes
 
 handler = ImageUploadHandler()
 
@@ -128,6 +129,7 @@ def combine_patches():
         return jsonify(message="Combined image saved successfully", combined_image_path=combined_image_path), 200
     except Exception as e:
         return jsonify(error="Error combining patches: " + str(e)), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)
