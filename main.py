@@ -76,11 +76,13 @@ def predict_mask():
         if not os.path.exists(image_path):
             return jsonify(error="Resized image not found"), 404
         predicted_mask_path = handler.process_resized_image_prediction(model, image_path)
-        return jsonify(predicted_mask_url=predicted_mask_path), 200
+        predicted_mask_url = f"http://{request.host}/{os.path.relpath(predicted_mask_path, os.getcwd())}"
+        return jsonify(predicted_mask_url=predicted_mask_url), 200
     elif image_type == 'patch_image':
         predicted_mask_paths = handler.process_patch_image_prediction(model, PATCHED_FOLDER, filename,
                                                                       PREDICTED_PATCH_FOLDER)
-        return jsonify(predicted_mask_urls=predicted_mask_paths), 200
+        predicted_mask_urls = [f"http://{request.host}/{os.path.relpath(path, os.getcwd())}" for path in predicted_mask_paths]
+        return jsonify(predicted_mask_urls=predicted_mask_urls), 200
     else:
         return jsonify(error="Invalid image type. Supported types: 'resized_image' or 'patch_image'"), 400
 
