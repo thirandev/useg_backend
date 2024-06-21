@@ -17,6 +17,9 @@ CORS(app)  # This will enable CORS for all routes
 
 handler = ImageUploadHandler()
 
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(MODEL_PATH, exist_ok=True)
+os.makedirs(PATCHED_FOLDER, exist_ok=True)
 os.makedirs(PREDICTED_PATCH_FOLDER, exist_ok=True)
 os.makedirs(PREDICTED_FOLDER, exist_ok=True)
 
