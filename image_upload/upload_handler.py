@@ -58,14 +58,6 @@ class ImageUploadHandler:
         predicted_mask_path = self.processor.save_predicted_mask(predicted_mask, image_path, PREDICTED_FOLDER)
         return predicted_mask_path
 
-    def blend_patches(self, filename):
-        patch_folder = os.path.join(os.getcwd(), 'patch_output')
-        blend_folder = os.path.join(os.getcwd(), 'blended_output')
-        os.makedirs(blend_folder, exist_ok=True)
-
-        blended_image_path = self.processor.blend_patches(patch_folder, filename, blend_folder)
-        return blended_image_path
-
     def process_patch_image_prediction(self, model, patched_folder, filename, predicted_folder):
         predicted_mask_paths = self.processor.predict_patch_images(model, patched_folder, filename, predicted_folder)
         return predicted_mask_paths

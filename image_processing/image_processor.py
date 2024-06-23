@@ -10,14 +10,14 @@ PATCH_SIZE = 128
 class ImageProcessor:
     def __init__(self):
         self.labels_rgb = {
-            "000": np.array([0, 0, 0]),  # BW: Background (waterBody) - Black
-            "001": np.array([0, 0, 255]),  # HD: Human divers - Blue
-            "010": np.array([0, 255, 0]),  # PF: Aquatic plants and sea-grass - Green
-            "011": np.array([135, 206, 235]),  # WR: Wrecks and ruins - Sky
-            "100": np.array([255, 0, 0]),  # RO: Robots (AUVs/ROVs/instruments) - Red
-            "101": np.array([255, 192, 203]),  # RI: Reefs and invertebrates - Pink
-            "110": np.array([255, 255, 0]),  # FV: Fish and vertebrates - Yellow
-            "111": np.array([255, 255, 255])  # SR: Sea-floor and rocks - White
+            "000": np.array([0, 0, 0]),
+            "001": np.array([0, 0, 255]),
+            "010": np.array([0, 255, 0]),
+            "011": np.array([0, 255, 255]),
+            "100": np.array([255, 0, 0]),
+            "101": np.array([255, 255, 0]),
+            "110": np.array([255, 0, 255]),
+            "111": np.array([255, 255, 255])
         }
 
     def resize_image(self, image):
